@@ -3,24 +3,10 @@
 # This script is **destructive** and will delete a lot of IBM
 # Cloud resources. Use with caution!
 
-# In order to use this script you must have installed the IBM
-# Cloud CLI. If you need to do that run the following:
-# curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
-
-# Once installed, this script uses several plugins, to
-# install them run the following commands:
-# ibmcloud plugin install -f code-engine
-# ibmcloud plugin install -f container-registry
-# ibmcloud plugin install -f container-service
-# ibmcloud plugin install -f cloud-functions
-# ibmcloud plugin install -f infrastructure-service
-# ibmcloud plugin install -f schematics
-# ibmcloud plugin install -f sdk-gen
-
 # Lastly, you must be authenticated and have targetted
 # a resource group. To do so, run the following:
 
-# ibmcloud login
+# ibmcloud login --sso
 # ibmcloud target -g <resource-group>
 
 
@@ -65,10 +51,10 @@ else
     NO_DRY_RUN=0
 fi
 
-echo "================================="
+#echo "================================="
 echo "NO_DRY_RUN = ${NO_DRY_RUN}"
 echo "CONFIG_FILE = ${CONFIG_FILE}"
-echo "================================="
+#echo "================================="
 
 # Usage: get_or_create_user <name_or_id>
 function check_config_file() {
@@ -79,12 +65,28 @@ function check_config_file() {
     fi
 }
 
+# Resource Group retrieve all under Account
+#echo "================================="
+echo "  "
+echo "Retrieving all resource groups under account: "
+#echo "  "
+#echo "================================="
+ibmcloud resource groups | tail -n+4 | while read -r name rest_of_cmd; do
+    echo "- ${name}"
+    check_config_file "${name}"
+
+    if [ "${NO_DRY_RUN}" == 1 ]; then
+        ibmcloud resource group-delete "${name}" -f
+    fi
+done
+
 # clusters
-echo "================================="
-echo "Clusters: "
-echo "================================="
+#echo "================================="
+echo "  "
+echo "OpenShift Clusters: "
+#echo "================================="
 ibmcloud ks clusters -q | tail -n+2 | while read -r name rest_of_cmd ; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -94,11 +96,12 @@ ibmcloud ks clusters -q | tail -n+2 | while read -r name rest_of_cmd ; do
 done
 
 # namespaces
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Container Registry (namespaces): "
-echo "================================="
+#echo "================================="
 ibmcloud cr namespaces | tail -n+4 | while read -r name rest_of_cmd ; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -107,11 +110,12 @@ ibmcloud cr namespaces | tail -n+4 | while read -r name rest_of_cmd ; do
 done
 
 # apps
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Applications: "
-echo "================================="
+#echo "================================="
 ibmcloud dev list | tail -n+8 | while read -r name rest_of_cmd ; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -120,11 +124,12 @@ ibmcloud dev list | tail -n+8 | while read -r name rest_of_cmd ; do
 done
 
 # services - use awk here as the service name can include spaces
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Services: "
-echo "================================="
+#echo "================================="
 ibmcloud resource service-instances | tail -n+4 | awk -F '  +' '{print $1}' | while read -r name; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -133,9 +138,10 @@ ibmcloud resource service-instances | tail -n+4 | awk -F '  +' '{print $1}' | wh
 done
 
 # baremetal
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Classic Baremetal: "
-echo "================================="
+#echo "================================="
 ibmcloud sl hardware list | grep -v 'kube-' | tail -n+2 | while read -r id rest_of_cmd ; do
     echo "${id}"
     check_config_file "${id}"
@@ -146,11 +152,12 @@ ibmcloud sl hardware list | grep -v 'kube-' | tail -n+2 | while read -r id rest_
 done
 
 # VMs
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Classic VMs: "
-echo "================================="
+#echo "================================="
 ibmcloud sl vs list | grep -v 'kube-' | tail -n+2 | while read -r id rest_of_cmd ; do
-    echo "${id}"
+    echo "- ${id}"
     check_config_file "${id}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -159,11 +166,12 @@ ibmcloud sl vs list | grep -v 'kube-' | tail -n+2 | while read -r id rest_of_cmd
 done
 
 # code engine
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Code Engine (Projects):"
-echo "================================="
+#echo "================================="
 ibmcloud ce project list | tail -n+5 | while read -r name rest_of_cmd ; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -172,11 +180,12 @@ ibmcloud ce project list | tail -n+5 | while read -r name rest_of_cmd ; do
 done
 
 # functions - use awk because namespaces can have spaces
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Cloud Functions (namespaces): "
-echo "================================="
+#echo "================================="
 ibmcloud fn namespace list | tail -n+3 | awk -F '  +' '{print $1}' | while read -r name; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -185,11 +194,12 @@ ibmcloud fn namespace list | tail -n+3 | awk -F '  +' '{print $1}' | while read 
 done
 
 # satellite locations (cannot contain a space)
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Satellite locations: "
-echo "================================="
+#echo "================================="
 ibmcloud sat location ls | tail -n+4 | while read -r name rest_of_cmd; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
@@ -198,27 +208,72 @@ ibmcloud sat location ls | tail -n+4 | while read -r name rest_of_cmd; do
 done
 
 # Virtual Private Clouds (VPCs) (cannot contain a space)
-echo "================================="
+#echo "================================="
+echo "  "
 echo "Virtual Private Clouds: "
-echo "================================="
+#echo "================================="
 ibmcloud is vpcs | tail -n+3 | while read -r id rest_of_cmd; do
-    echo "${id}"
+    echo "- ${id}"
     check_config_file "${id}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
-        ibmcloud is vpcd "${id}" -f
+        ibmcloud is subnetd "${id}" -f
+    fi
+done
+
+# Virtual Private Clouds (VPCs) - Subnets (cannot contain a space)
+#echo "================================="
+echo "  "
+echo "Virtual Private Clouds - Subnets: "
+#echo "================================="
+ibmcloud is subnets | tail -n+3 | while read -r id rest_of_cmd; do
+    echo "- ${id}"
+    check_config_file "${id}"
+
+    if [ "${NO_DRY_RUN}" == 1 ]; then
+        ibmcloud is subnetd "${id}" -f
+    fi
+done
+
+# Virtual Private Clouds (VPCs) - LB (cannot contain a space)
+#echo "================================="
+echo "  "
+echo "Virtual Private Clouds - Load Balancer: "
+#echo "================================="
+ibmcloud is lbs | tail -n+3 | while read -r id rest_of_cmd; do
+    echo "- ${id}"
+    check_config_file "${id}"
+
+    if [ "${NO_DRY_RUN}" == 1 ]; then
+        ibmcloud is lbd "${id}" -f
+    fi
+done
+
+# Virtual Private Clouds (VPCs) - Regions (cannot contain a space)
+#echo "================================="
+echo "  "
+echo "Virtual Private Clouds - Regions: "
+#echo "================================="
+ibmcloud is regions | tail -n+3 | while read -r id rest_of_cmd; do
+    echo "-> ${id}"
+    check_config_file "${id}"
+
+    if [ "${NO_DRY_RUN}" == 1 ]; then
+        ibmcloud is region "${id}" -f
     fi
 done
 
 # api keys - skip the keys that say "Do not delete"
-echo "================================="
+#echo "================================="
+echo "  "
 echo "API Keys: "
-echo "================================="
+#echo "================================="
 ibmcloud iam api-keys | tail -n+4 | grep -v 'Do not delete' | while read -r name rest_of_cmd; do
-    echo "${name}"
+    echo "- ${name}"
     check_config_file "${name}"
 
     if [ "${NO_DRY_RUN}" == 1 ]; then
         ibmcloud iam api-key-delete ${name}
     fi
 done
+
