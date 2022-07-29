@@ -112,19 +112,19 @@ main.sh [-n] [-c <path-to-config-file>]
    Perform a dry run:
 
    ```bash
-   ./main.sh
+   ./ibmcloud-delete.sh
    ```
 
    Delete all resources (will skip over any resorces found in `.ibmcloud-nuke`):
 
    ```bash
-   ./main.sh -n
+   ./ibmcloud-delete.sh -n
    ```
 
    Delete all resources but skip resources list in `myfile.txt`:
 
    ```bash
-   ./main.sh -c myfile.txt
+   ./ibmcloud-delete.sh -c myfile.txt
    ```
 
 ## TODO
